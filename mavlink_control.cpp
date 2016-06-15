@@ -170,7 +170,16 @@ top (int argc, char **argv)
 
 void
 commands(Autopilot_Interface &api)
-{
+{	
+	// --------------------------------------------------------------------------
+	//   ARM THE AUTOPILOT 
+	// --------------------------------------------------------------------------
+
+	api.arm();
+	usleep(100); // give some time to let it sink in
+
+	sleep(5); // give the autopilot time to arm 
+
 
 	// --------------------------------------------------------------------------
 	//   START OFFBOARD MODE
@@ -233,7 +242,6 @@ commands(Autopilot_Interface &api)
 	api.disable_offboard_control();
 
 	// now pixhawk isn't listening to setpoint commands
-
 
 	// --------------------------------------------------------------------------
 	//   GET A MESSAGE

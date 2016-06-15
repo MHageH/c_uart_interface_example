@@ -195,6 +195,7 @@ Autopilot_Interface(Serial_Port *serial_port_)
 	reading_status = 0;      // whether the read thread is running
 	writing_status = 0;      // whether the write thread is running
 	control_status = 0;      // whether the autopilot is in offboard control mode
+	arm_status = 0; 		 // whether the autopilot is armed or not
 	time_to_exit   = false;  // flag to signal thread exit
 
 	read_tid  = 0; // read thread id
@@ -547,6 +548,89 @@ toggle_offboard_control( bool flag )
 	return len;
 }
 
+// ------------------------------------------------------------------------------
+//   Arm the autopilot
+// ------------------------------------------------------------------------------
+
+void 
+Autopilot_Interface::
+arm(void)
+{
+		// Should only send this command once
+
+	if ( arm_status == false ){
+
+		printf("ARMING \n");
+
+		// Sends the command to arm
+		int success = toggle_arm_disarm( true );
+
+		// Check the command was written
+		if ( success )
+			arm_status = true;
+		else
+		{
+			fprintf(stderr,"Error: Arming failed, could not write message\n");
+			//throw EXIT_FAILURE;
+		}
+
+		printf("\n");
+	} // end: if arm_status 
+}
+
+// ------------------------------------------------------------------------------
+//   Disarm the autopilot
+// ------------------------------------------------------------------------------
+
+void 
+Autopilot_Interface::
+disarm(void)
+{
+		// Should only send this command once
+
+	if ( arm_status == true ){
+		int success = toggle_arm_disarm( false );
+
+		// Check the command was written
+		if ( success )
+			arm_status = false;
+		else
+		{
+			fprintf(stderr,"Error: Disarming failed, could not write message\n");
+			//throw EXIT_FAILURE;
+		}
+
+		printf("\n");
+	}  // end: if arm_status
+}
+
+
+// ------------------------------------------------------------------------------
+//   Toggle Arm/Disarm
+// ------------------------------------------------------------------------------
+
+int 
+Autopilot_Interface::
+toggle_arm_disarm( bool flag )
+{
+	// Prepare command for arming/disarming
+	mavlink_command_long_t autopilot_status = { 0 };
+	autopilot_status.target_system    = system_id;
+	autopilot_status.target_component = autopilot_id;
+	autopilot_status.command          = MAV_CMD_COMPONENT_ARM_DISARM;
+	autopilot_status.confirmation     = true;
+	autopilot_status.param1           = (float) flag; // flag = 1 => arm, flag = 0 => disarm
+
+	// Encode
+	mavlink_message_t message;
+	mavlink_msg_command_long_encode(system_id, companion_id, &message, &autopilot_status);
+
+	// Send the message
+	int len = serial_port->write_message(message);
+	
+	// Done!
+	return len;
+}
 
 // ------------------------------------------------------------------------------
 //   STARTUP
